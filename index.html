@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indicadores Opex 2025</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1e2333;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --muted: #7a7f9a;
+    --accent-blue: #4f8ef7;
+    --accent-teal: #2dd4a0;
+    --accent-amber: #f5a623;
+    --accent-red: #f06565;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── HEADER ── */
+  .top-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .top-bar h1 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .top-bar h1 span { color: var(--accent-blue); }
+  .top-date { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+
+  /* ── LAYOUT ── */
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 28px 32px; }
+
+  /* ── FILTERS ── */
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    align-items: center;
+  }
+  .filter-bar label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-right: -4px; }
+  .filter-bar select {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .filter-bar select:focus { border-color: var(--accent-blue); }
+  .filter-bar select:hover { border-color: var(--border2); }
+  .btn-reset {
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    font-family: var(--font);
+    font-size: 12px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .15s;
+    margin-left: auto;
+  }
+  .btn-reset:hover { background: var(--surface2); color: var(--text); }
+
+  /* ── CARDS ── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    transition: border-color .2s;
+  }
+  .card:hover { border-color: var(--border2); }
+  .card-lbl {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 8px;
+  }
+  .card-val {
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .card-sub { font-size: 12px; color: var(--muted); }
+  .c-blue { color: var(--accent-blue); }
+  .c-teal { color: var(--accent-teal); }
+  .c-red  { color: var(--accent-red); }
+  .c-amber{ color: var(--accent-amber); }
+
+  /* ── GRID 2 COL ── */
+  .g2 { display: grid; grid-template-columns: minmax(0,1.5fr) minmax(0,1fr); gap: 12px; margin-bottom: 12px; }
+  .g2b { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; margin-bottom: 12px; }
+
+  /* ── PANEL ── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+  }
+  .panel-title {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* ── CHART ── */
+  .chart-wrap { position: relative; height: 180px; }
+
+  /* ── BAR ROWS ── */
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 9px;
+    font-size: 12px;
+  }
+  .bar-lbl {
+    width: 150px;
+    flex-shrink: 0;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width .5s cubic-bezier(.4,0,.2,1); }
+  .bar-n { width: 30px; text-align: right; color: var(--muted); font-family: var(--mono); font-size: 11px; }
+
+  /* ── RESPONSÁVEIS ── */
+  .resp-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent-blue);
+    flex-shrink: 0;
+    font-family: var(--mono);
+  }
+  .resp-info { flex: 1; min-width: 0; }
+  .resp-name { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+  .resp-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .resp-bar-fill { height: 100%; border-radius: 2px; background: var(--accent-blue); opacity: .6; }
+  .resp-n { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+
+  /* ── TABLE ── */
+  .tbl-wrap { overflow-x: auto; margin-top: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th {
+    text-align: left;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    padding: 0 8px 10px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 9px 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--surface2); }
+  .link-chave {
+    color: var(--accent-blue);
+    text-decoration: none;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .link-chave:hover { text-decoration: underline; }
+  .tag {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .tag-sim { background: rgba(45,212,160,.15); color: var(--accent-teal); }
+  .tag-nao { background: rgba(240,101,101,.12); color: var(--accent-red); }
+  .tag-ok  { background: rgba(79,142,247,.12); color: var(--accent-blue); }
+  td.num { text-align: right; font-family: var(--mono); color: var(--muted); }
+
+  /* ── PAGINATION ── */
+  .pagination {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 14px;
+  }
+  .pagination button {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .pagination button.active,
+  .pagination button:hover { background: var(--accent-blue); color: #fff; border-color: transparent; }
+  .pagination .pg-info { font-size: 11px; color: var(--muted); margin: 0 8px; font-family: var(--mono); }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  @media (max-width: 900px) {
+    .cards { grid-template-columns: repeat(2, 1fr); }
+    .g2, .g2b { grid-template-columns: 1fr; }
+    .wrap { padding: 16px; }
+    .top-bar { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>Indicadores <span>Opex</span> 2025</h1>
+  <span class="top-date" id="today"></span>
+</div>
+
+<div class="wrap">
+
+  <!-- FILTROS -->
+  <div class="filter-bar">
+    <label>BU</label>
+    <select id="f-bu" onchange="applyFilters()"><option value="">Todas</option></select>
+    <label>Produto</label>
+    <select id="f-prod" onchange="applyFilters()"><option value="">Todos</option></select>
+    <label>Responsável</label>
+    <select id="f-resp" onchange="applyFilters()"><option value="">Todos</option></select>
+    <button class="btn-reset" onclick="resetFilters()">Limpar filtros</button>
+  </div>
+
+  <!-- CARDS -->
+  <div class="cards">
+    <div class="card">
+      <div class="card-lbl">Total de solicitações</div>
+      <div class="card-val c-blue" id="c-total">—</div>
+      <div class="card-sub" id="c-total-sub">registros</div>
+    </div>
+    <div class="card">
+      <div class="card-lbl">Já resolvemos (Sim)</div>
+      <div class="card-val c-teal" id="c-sim">—</div>
+      <div class="card-sub" id="c-sim-pct">—</div>
+    </div>
+    <div class="card">
+      <div class="card-lbl">Não resolvido</div>
+      <div class="card-val c-red" id="c-nao">—</div>
+      <div class="card-sub" id="c-nao-pct">—</div>
+    </div>
+    <div class="card">
+      <div class="card-lbl">Média dias dev→conclusão</div>
+      <div class="card-val c-amber" id="c-dias">—</div>
+      <div class="card-sub">dias úteis</div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="g2">
+    <div class="panel">
+      <div class="panel-title">Capex vs Opex — % dias por mês</div>
+      <div class="chart-wrap"><canvas id="chart-mensal"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Top ações</div>
+      <div id="bars-acao"></div>
+    </div>
+  </div>
+
+  <div class="g2b">
+    <div class="panel">
+      <div class="panel-title">Solicitações por BU</div>
+      <div id="bars-bu"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Responsáveis</div>
+      <div id="resp-list"></div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="panel-title" style="margin:0">Solicitações</div>
+      <span class="pg-info" id="tbl-info" style="font-size:11px;color:var(--muted);font-family:var(--mono)"></span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Chave</th>
+            <th>BU</th>
+            <th>Produto</th>
+            <th>Ação</th>
+            <th>Responsável</th>
+            <th>Criado</th>
+            <th>Conclusão</th>
+            <th style="text-align:right">Dias dev</th>
+            <th>Resolvemos?</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+</div>
+
+<script>
+const DATA = [{"chave":"BDC-3175","bu":"EI","produto":"Árvore de Coleções","acao":"Criar árvore 26","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"11/08/2025","conclusao":"25/11/2025","dias_dev":21.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3175"},{"chave":"BDC-2980","bu":"SPE","produto":"Gestor - Conteúdos Gerais","acao":"Cadastro massivo conteúdos","opex_resolvido":"Não","status":"Concluído","responsavel":"Danilo Mendes Feitosa da Silva","criado":"01/07/2025","conclusao":"14/07/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-2980"},{"chave":"BDC-4422","bu":"COC","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"04/02/2026","conclusao":"19/02/2026","dias_dev":12.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4422"},{"chave":"BDC-3004","bu":"COC","produto":"QrCode","acao":"Atualização link QrCode","opex_resolvido":"Não","status":"Concluído","responsavel":"Danilo Mendes Feitosa da Silva","criado":"03/07/2025","conclusao":"14/07/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3004"},{"chave":"BDC-3007","bu":"SPE","produto":"Árvore de Coleções","acao":"Criar árvore 26","opex_resolvido":"Não","status":"Concluído","responsavel":"Não atribuído","criado":"07/07/2025","conclusao":"11/08/2025","dias_dev":11.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3007"},{"chave":"BDC-3020","bu":"COC","produto":"Árvore de Coleções","acao":"Criar árvore 26","opex_resolvido":"Não","status":"Concluído","responsavel":"Não atribuído","criado":"07/07/2025","conclusao":"01/09/2025","dias_dev":9.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3020"},{"chave":"BDC-3720","bu":"SAE","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"31/10/2025","conclusao":"19/11/2025","dias_dev":7.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3720"},{"chave":"BDC-3036","bu":"SAS","produto":"Gestor - Conteúdos da Estante","acao":"Editar título Exercício","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"14/07/2025","conclusao":"17/07/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3036"},{"chave":"BDC-3888","bu":"PES","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"24/11/2025","conclusao":"05/12/2025","dias_dev":7.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3888"},{"chave":"BDC-3082","bu":"SPE","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"21/07/2025","conclusao":"28/07/2025","dias_dev":5.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3082"},{"chave":"BDC-3084","bu":"COC","produto":"Gestor - Conteúdos da Estante","acao":"Publicação em massa Exercícios","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"22/07/2025","conclusao":"04/08/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3084"},{"chave":"BDC-3085","bu":"-","produto":"Árvore de Assuntos","acao":"Edição assunto","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"22/07/2025","conclusao":"07/08/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3085"},{"chave":"BDC-3094","bu":"SPE","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"28/07/2025","conclusao":"07/08/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3094"},{"chave":"BDC-3095","bu":"SAS","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"28/07/2025","conclusao":"11/08/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3095"},{"chave":"BDC-3097","bu":"COC","produto":"QrCode","acao":"Atualização link QrCode","opex_resolvido":"Não","status":"Concluído","responsavel":"Não atribuído","criado":"28/07/2025","conclusao":"31/07/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3097"},{"chave":"BDC-3103","bu":"-","produto":"Habilidades BNCC","acao":"Edição BNCC","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"28/07/2025","conclusao":"07/08/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3103"},{"chave":"BDC-3110","bu":"SAS","produto":"Gestor - Conteúdos da Estante","acao":"Novo Tipo/Subtipo","opex_resolvido":"Não","status":"Concluído","responsavel":"Danilo Mendes Feitosa da Silva","criado":"31/07/2025","conclusao":"04/08/2025","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3110"},{"chave":"BDC-3375","bu":"SAE","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"11/09/2025","conclusao":"08/10/2025","dias_dev":6.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3375"},{"chave":"BDC-3131","bu":"COC","produto":"Gestor - Conteúdos da Estante","acao":"Publicação em massa Exercícios","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"04/08/2025","conclusao":"06/08/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3131"},{"chave":"BDC-3133","bu":"SPE","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Não atribuído","criado":"05/08/2025","conclusao":"15/08/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3133"},{"chave":"BDC-3135","bu":"SAS","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Não atribuído","criado":"05/08/2025","conclusao":"14/08/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3135"},{"chave":"BDC-3163","bu":"SAS","produto":"Gestor - Conteúdos da Estante","acao":"Publicação em massa Exercícios","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"11/08/2025","conclusao":"13/08/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3163"},{"chave":"BDC-3736","bu":"PES","produto":"Árvore de Coleções","acao":"Criar árvore 26","opex_resolvido":"Não","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"04/11/2025","conclusao":"12/11/2025","dias_dev":6.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3736"},{"chave":"BDC-3114","bu":"SAS","produto":"Árvore de Coleções","acao":"Criar árvore 26","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"31/07/2025","conclusao":"15/08/2025","dias_dev":5.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3114"},{"chave":"BDC-3182","bu":"PES","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Não atribuído","criado":"12/08/2025","conclusao":"14/08/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3182"},{"chave":"BDC-3186","bu":"SAS","produto":"Content Program","acao":"Criar árvore 26","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"12/08/2025","conclusao":"01/09/2025","dias_dev":11.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3186"},{"chave":"BDC-3188","bu":"COC","produto":"QrCode","acao":"Atualização link QrCode","opex_resolvido":"Não","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"13/08/2025","conclusao":"18/08/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3188"},{"chave":"BDC-3199","bu":"SAS","produto":"Gestor - Conteúdos da Estante","acao":"Reaproveitamento Conteúdo","opex_resolvido":"Não","status":"Concluído","responsavel":"Marilia Reis Guarienti de Carvalho","criado":"15/08/2025","conclusao":"18/09/2025","dias_dev":17.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3199"},{"chave":"BDC-3200","bu":"SPE","produto":"Gestor - Conteúdos da Estante","acao":"Reaproveitamento Conteúdo","opex_resolvido":"Não","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"15/08/2025","conclusao":"15/09/2025","dias_dev":14.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3200"},{"chave":"BDC-3241","bu":"SPE","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"20/08/2025","conclusao":"04/09/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3241"},{"chave":"BDC-3252","bu":"SAS","produto":"Content Program","acao":"Criar materiais 26","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"22/08/2025","conclusao":"02/09/2025","dias_dev":7.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3252"},{"chave":"BDC-3262","bu":"COC","produto":"Encurtador - GURL","acao":"Liberar acesso","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"26/08/2025","conclusao":"27/08/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3262"},{"chave":"BDC-3275","bu":"COC","produto":"QrCode","acao":"Atualização link QrCode","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"27/08/2025","conclusao":"29/08/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3275"},{"chave":"BDC-3277","bu":"SAS","produto":"Gestor - Conteúdos Gerais","acao":"Editar Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"28/08/2025","conclusao":"02/09/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3277"},{"chave":"BDC-3282","bu":"SPE","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"28/08/2025","conclusao":"02/09/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3282"},{"chave":"BDC-3174","bu":"CQT","produto":"Árvore de Coleções","acao":"Criar árvore 26","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"11/08/2025","conclusao":"20/10/2025","dias_dev":5.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3174"},{"chave":"BDC-3630","bu":"SAE","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"22/10/2025","conclusao":"03/11/2025","dias_dev":5.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3630"},{"chave":"BDC-3298","bu":"COC","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"02/09/2025","conclusao":"10/09/2025","dias_dev":6.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3298"},{"chave":"BDC-3896","bu":"IS","produto":"Árvore de Coleções","acao":"Criar árvore 26","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"25/11/2025","conclusao":"27/02/2026","dias_dev":5.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3896"},{"chave":"BDC-4106","bu":"SPE","produto":"Árvore de Coleções","acao":"Excluir galhos","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"18/12/2025","conclusao":"11/03/2026","dias_dev":5.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4106"},{"chave":"BDC-3284","bu":"SAS","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"28/08/2025","conclusao":"08/09/2025","dias_dev":4.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3284"},{"chave":"BDC-3352","bu":"SAS","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Não atribuído","criado":"08/09/2025","conclusao":"15/09/2025","dias_dev":4.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3352"},{"chave":"BDC-3362","bu":"SPE","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"09/09/2025","conclusao":"17/09/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3362"},{"chave":"BDC-4093","bu":"IS","produto":"Árvore de Coleções","acao":"Criar árvore 26","opex_resolvido":"Não","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"17/12/2025","conclusao":"27/01/2026","dias_dev":4.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4093"},{"chave":"BDC-4309","bu":"PES","produto":"Árvore de Coleções","acao":"Editar coleção","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"21/01/2026","conclusao":"26/01/2026","dias_dev":4.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4309"},{"chave":"BDC-3378","bu":"PES","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"11/09/2025","conclusao":"19/09/2025","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3378"},{"chave":"BDC-3395","bu":"COC","produto":"Gestor - Conteúdos da Estante","acao":"Reaproveitamento Conteúdo","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"12/09/2025","conclusao":"10/10/2025","dias_dev":15.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3395"},{"chave":"BDC-3399","bu":"-","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"12/09/2025","conclusao":"30/09/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3399"},{"chave":"BDC-3400","bu":"SAE","produto":"Gestor - Conteúdos da Estante","acao":"Ajuste regra subtipo","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"12/09/2025","conclusao":"02/10/2025","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3400"},{"chave":"BDC-3417","bu":"SAS","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"16/09/2025","conclusao":"17/09/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3417"},{"chave":"BDC-4453","bu":"SAS","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Não atribuído","criado":"09/02/2026","conclusao":"13/02/2026","dias_dev":4.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4453"},{"chave":"BDC-3445","bu":"SPE","produto":"Gestor - Conteúdos da Estante","acao":"Reaproveitamento Conteúdo","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"22/09/2025","conclusao":"23/09/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3445"},{"chave":"BDC-3472","bu":"SPE","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"24/09/2025","conclusao":"03/10/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3472"},{"chave":"BDC-3479","bu":"SAS","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"25/09/2025","conclusao":"30/09/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3479"},{"chave":"BDC-3480","bu":"SAS","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"26/09/2025","conclusao":"30/09/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3480"},{"chave":"BDC-3523","bu":"SAS","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"03/10/2025","conclusao":"06/10/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3523"},{"chave":"BDC-3524","bu":"SPE","produto":"Gestor - Conteúdos Gerais","acao":"Editar Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"03/10/2025","conclusao":"06/10/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3524"},{"chave":"BDC-3527","bu":"SPE","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"03/10/2025","conclusao":"10/10/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3527"},{"chave":"BDC-3528","bu":"SAS","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"03/10/2025","conclusao":"07/10/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3528"},{"chave":"BDC-3558","bu":"SAE","produto":"Customizador","acao":"Nova seção extra","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"08/10/2025","conclusao":"08/10/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3558"},{"chave":"BDC-3564","bu":"CQT","produto":"Gestor - Conteúdos da Estante","acao":"Reaproveitamento Conteúdo","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"10/10/2025","conclusao":"28/10/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3564"},{"chave":"BDC-3579","bu":"COC","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"14/10/2025","conclusao":"27/10/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3579"},{"chave":"BDC-2975","bu":"COC","produto":"Árvore de Coleções","acao":"Editar coleção","opex_resolvido":"Sim","status":"Concluído","responsavel":"Não atribuído","criado":"01/07/2025","conclusao":"03/07/2025","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-2975"},{"chave":"BDC-3619","bu":"SPE","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"20/10/2025","conclusao":"21/10/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3619"},{"chave":"BDC-3621","bu":"SAS","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"20/10/2025","conclusao":"22/10/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3621"},{"chave":"BDC-3626","bu":"SAS","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"21/10/2025","conclusao":"22/10/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3626"},{"chave":"BDC-3047","bu":"SAS","produto":"Árvore de Coleções","acao":"Editar coleção","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"16/07/2025","conclusao":"22/07/2025","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3047"},{"chave":"BDC-3642","bu":"-","produto":"Habilidades BNCC","acao":"Edição BNCC","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"23/10/2025","conclusao":"28/10/2025","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3642"},{"chave":"BDC-3329","bu":"COC","produto":"Árvore de Coleções","acao":"Editar coleção","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"04/09/2025","conclusao":"09/09/2025","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3329"},{"chave":"BDC-3650","bu":"SPE","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"23/10/2025","conclusao":"03/11/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3650"},{"chave":"BDC-3682","bu":"SAE","produto":"Gestor - Conteúdos da Estante","acao":"Novo Tipo/Subtipo","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"28/10/2025","conclusao":"03/11/2025","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3682"},{"chave":"BDC-3687","bu":"SAE","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"28/10/2025","conclusao":"12/11/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3687"},{"chave":"BDC-3688","bu":"CQT","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"28/10/2025","conclusao":"24/11/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3688"},{"chave":"BDC-3689","bu":"SAE","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"28/10/2025","conclusao":"18/12/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3689"},{"chave":"BDC-3701","bu":"SPE","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"29/10/2025","conclusao":"31/10/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3701"},{"chave":"BDC-3704","bu":"COC","produto":"Gestor - Conteúdos da Estante","acao":"Publicação em massa Exercícios","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"29/10/2025","conclusao":"31/10/2025","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3704"},{"chave":"BDC-3787","bu":"SAE","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"07/11/2025","conclusao":"12/11/2025","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3787"},{"chave":"BDC-3734","bu":"SAS","produto":"Gestor - Conteúdos da Estante","acao":"Publicação em massa Exercícios","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"04/11/2025","conclusao":"07/11/2025","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3734"},{"chave":"BDC-2993","bu":"COC","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"03/07/2025","conclusao":"25/07/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-2993"},{"chave":"BDC-3772","bu":"CQT","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"05/11/2025","conclusao":"10/11/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3772"},{"chave":"BDC-3017","bu":"SAS","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Não atribuído","criado":"07/07/2025","conclusao":"25/07/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3017"},{"chave":"BDC-3317","bu":"SAS","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"03/09/2025","conclusao":"08/09/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3317"},{"chave":"BDC-3789","bu":"SAS","produto":"Gestor - Conteúdos da Estante","acao":"Publicação em massa Exercícios","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"07/11/2025","conclusao":"10/11/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3789"},{"chave":"BDC-3790","bu":"SPE","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"07/11/2025","conclusao":"11/11/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3790"},{"chave":"BDC-3793","bu":"SAS","produto":"Gestor - Conteúdos da Estante","acao":"Reaproveitamento Conteúdo","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"07/11/2025","conclusao":"11/11/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3793"},{"chave":"BDC-3804","bu":"SAS","produto":"Gestor - Conteúdos da Estante","acao":"Publicação em massa Exercícios","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"10/11/2025","conclusao":"11/11/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3804"},{"chave":"BDC-3805","bu":"CQT","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"10/11/2025","conclusao":"12/11/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3805"},{"chave":"BDC-3812","bu":"SAE","produto":"Gestor - Conteúdos da Estante","acao":"Novo Tipo/Subtipo","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"11/11/2025","conclusao":"17/11/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3812"},{"chave":"BDC-3816","bu":"SPE","produto":"Gestor - Conteúdos da Estante","acao":"Reaproveitamento Conteúdo","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"13/11/2025","conclusao":"14/11/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3816"},{"chave":"BDC-3821","bu":"SPE","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"14/11/2025","conclusao":"17/11/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3821"},{"chave":"BDC-3823","bu":"SAS","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"17/11/2025","conclusao":"17/11/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3823"},{"chave":"BDC-3828","bu":"CQT","produto":"Gestor - Conteúdos Gerais","acao":"Excluir Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"17/11/2025","conclusao":"18/11/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3828"},{"chave":"BDC-3830","bu":"PES","produto":"Gestor - Conteúdos da Estante","acao":"Reaproveitamento Conteúdo","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"17/11/2025","conclusao":"18/11/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3830"},{"chave":"BDC-3369","bu":"COC","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"10/09/2025","conclusao":"17/09/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3369"},{"chave":"BDC-3853","bu":"-","produto":"Habilidades BNCC","acao":"Edição BNCC","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"19/11/2025","conclusao":"27/11/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3853"},{"chave":"BDC-3885","bu":"SAE","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"24/11/2025","conclusao":"27/11/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3885"},{"chave":"BDC-3610","bu":"WAYS","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"17/10/2025","conclusao":"21/10/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3610"},{"chave":"BDC-3889","bu":"CQT","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"24/11/2025","conclusao":"25/11/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3889"},{"chave":"BDC-3646","bu":"COC","produto":"Árvore de Coleções","acao":"Editar coleção","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"23/10/2025","conclusao":"24/10/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3646"},{"chave":"BDC-3897","bu":"IS","produto":"Gestor - Conteúdos da Estante","acao":"Novo Tipo/Subtipo","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"25/11/2025","conclusao":"25/02/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3897"},{"chave":"BDC-3904","bu":"SAS","produto":"Gestor - Conteúdos da Estante","acao":"Publicação em massa Exercícios","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"25/11/2025","conclusao":"27/11/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3904"},{"chave":"BDC-3912","bu":"SAS","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"26/11/2025","conclusao":"27/11/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3912"},{"chave":"BDC-3925","bu":"SAS","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"28/11/2025","conclusao":"01/12/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3925"},{"chave":"BDC-3929","bu":"-","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"01/12/2025","conclusao":"03/12/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3929"},{"chave":"BDC-3932","bu":"SAE","produto":"Customizador","acao":"Nova seção extra","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"01/12/2025","conclusao":"17/12/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3932"},{"chave":"BDC-3934","bu":"-","produto":"Árvore de Assuntos","acao":"Edição assunto","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"01/12/2025","conclusao":"10/12/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3934"},{"chave":"BDC-3776","bu":"SAS","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"05/11/2025","conclusao":"10/11/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3776"},{"chave":"BDC-3979","bu":"PES","produto":"Gestor - Conteúdos da Estante","acao":"Reaproveitamento Conteúdo","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"05/12/2025","conclusao":"15/12/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3979"},{"chave":"BDC-3990","bu":"SAS","produto":"Gestor - Conteúdos da Estante","acao":"Novo Tipo/Subtipo","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"05/12/2025","conclusao":"11/12/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3990"},{"chave":"BDC-3994","bu":"SAE","produto":"Gestor - Conteúdos da Estante","acao":"Novo Tipo/Subtipo","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"05/12/2025","conclusao":"10/12/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3994"},{"chave":"BDC-4002","bu":"SAE","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"08/12/2025","conclusao":"12/12/2025","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4002"},{"chave":"BDC-4061","bu":"SAE","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"12/12/2025","conclusao":"12/12/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4061"},{"chave":"BDC-4068","bu":"SPE","produto":"Gestor - Conteúdos Gerais","acao":"Excluir Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"15/12/2025","conclusao":"16/12/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4068"},{"chave":"BDC-4072","bu":"SAE","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"15/12/2025","conclusao":"17/12/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4072"},{"chave":"BDC-4079","bu":"CQT","produto":"Gestor - Conteúdos Gerais","acao":"Editar Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"16/12/2025","conclusao":"16/12/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4079"},{"chave":"BDC-4092","bu":"IS","produto":"Gestor - Conteúdos da Estante","acao":"Novo Tipo/Subtipo","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"17/12/2025","conclusao":"02/02/2026","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4092"},{"chave":"BDC-3966","bu":"SAE","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"03/12/2025","conclusao":"12/12/2025","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3966"},{"chave":"BDC-3292","bu":"SAS","produto":"Árvore de Coleções","acao":"Relatório","opex_resolvido":"Não","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"29/08/2025","conclusao":"04/09/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3292"},{"chave":"BDC-4116","bu":"SPE","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"18/12/2025","conclusao":"06/01/2026","dias_dev":14.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4116"},{"chave":"BDC-4125","bu":"SAS","produto":"QrCode","acao":"Atualização link QrCode","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"19/12/2025","conclusao":"15/01/2026","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4125"},{"chave":"BDC-4185","bu":"PES","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"06/01/2026","conclusao":"09/01/2026","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4185"},{"chave":"BDC-4191","bu":"SAE","produto":"Customizador","acao":"Habilitar visibilidade seção","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"07/01/2026","conclusao":"16/01/2026","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4191"},{"chave":"BDC-4217","bu":"SAS","produto":"Gestor - Conteúdos da Estante","acao":"Novo Tipo/Subtipo","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"08/01/2026","conclusao":"13/01/2026","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4217"},{"chave":"BDC-4222","bu":"SAS","produto":"QrCode","acao":"Atualização link QrCode","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"09/01/2026","conclusao":"15/01/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4222"},{"chave":"BDC-4238","bu":"SAS","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"13/01/2026","conclusao":"16/01/2026","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4238"},{"chave":"BDC-4250","bu":"-","produto":"Habilidades BNCC","acao":"Edição BNCC","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"14/01/2026","conclusao":"14/01/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4250"},{"chave":"BDC-4258","bu":"SAS","produto":"Gestor - Conteúdos Gerais","acao":"Editar Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"14/01/2026","conclusao":"29/01/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4258"},{"chave":"BDC-4274","bu":"COC","produto":"Gestor - Conteúdos Gerais","acao":"Nova Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"15/01/2026","conclusao":"29/01/2026","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4274"},{"chave":"BDC-4287","bu":"PES","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"19/01/2026","conclusao":"22/01/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4287"},{"chave":"BDC-3348","bu":"SAS","produto":"Árvore de Coleções","acao":"Editar coleção","opex_resolvido":"Sim","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"08/09/2025","conclusao":"11/09/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3348"},{"chave":"BDC-4314","bu":"SAE","produto":"Gestor - Conteúdos da Estante","acao":"Novo Tipo/Subtipo","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"22/01/2026","conclusao":"26/01/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4314"},{"chave":"BDC-4324","bu":"SAS","produto":"QrCode","acao":"Atualização link QrCode","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"23/01/2026","conclusao":"27/01/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4324"},{"chave":"BDC-4326","bu":"SAS","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"26/01/2026","conclusao":"26/01/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4326"},{"chave":"BDC-4341","bu":"SAE","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"27/01/2026","conclusao":"28/01/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4341"},{"chave":"BDC-4343","bu":"SPE","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"27/01/2026","conclusao":"28/01/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4343"},{"chave":"BDC-4345","bu":"COC","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"27/01/2026","conclusao":"28/01/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4345"},{"chave":"BDC-4375","bu":"SAE","produto":"Gestor - Conteúdos Gerais","acao":"Excluir Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"29/01/2026","conclusao":"04/02/2026","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4375"},{"chave":"BDC-4377","bu":"PES","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"29/01/2026","conclusao":"04/02/2026","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4377"},{"chave":"BDC-4380","bu":"SAE","produto":"Gestor - Conteúdos da Estante","acao":"Novo Tipo/Subtipo","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"30/01/2026","conclusao":"05/02/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4380"},{"chave":"BDC-4386","bu":"-","produto":"Gestor - Conteúdos Gerais","acao":"Editar Área/Pasta","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"02/02/2026","conclusao":"04/02/2026","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4386"},{"chave":"BDC-4391","bu":"PES","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"02/02/2026","conclusao":"03/02/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4391"},{"chave":"BDC-4405","bu":"PES","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"03/02/2026","conclusao":"04/02/2026","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4405"},{"chave":"BDC-3434","bu":"SPE","produto":"Árvore de Coleções","acao":"Relatório","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"18/09/2025","conclusao":"19/09/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3434"},{"chave":"BDC-4430","bu":"PES","produto":"Gestor - Conteúdos Gerais","acao":"Relatório pastas x escolas","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"05/02/2026","conclusao":"20/02/2026","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4430"},{"chave":"BDC-4434","bu":"PES","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"05/02/2026","conclusao":"05/02/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4434"},{"chave":"BDC-3832","bu":"SAS","produto":"Árvore de Coleções","acao":"Relatório","opex_resolvido":"Não","status":"Concluído","responsavel":"Anderson De Souza Paulino","criado":"17/11/2025","conclusao":"19/11/2025","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3832"},{"chave":"BDC-4457","bu":"-","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"09/02/2026","conclusao":"11/02/2026","dias_dev":2.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4457"},{"chave":"BDC-4462","bu":"PES","produto":"Parametrizador","acao":"Vincular escolas em massa nos kit","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"10/02/2026","conclusao":"13/02/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4462"},{"chave":"BDC-4464","bu":"SPE","produto":"Gestor - Conteúdos da Estante","acao":"Novo Tipo/Subtipo","opex_resolvido":"Não","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"10/02/2026","conclusao":"12/02/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4464"},{"chave":"BDC-4490","bu":"COC","produto":"Gestor - Conteúdos da Estante","acao":"Novo Tipo/Subtipo","opex_resolvido":"Não","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"12/02/2026","conclusao":"12/02/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4490"},{"chave":"BDC-4499","bu":"COC","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"13/02/2026","conclusao":"18/02/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4499"},{"chave":"BDC-4520","bu":"SAE","produto":"Árvore de Coleções","acao":"Excluir galhos","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"19/02/2026","conclusao":"24/02/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4520"},{"chave":"BDC-4524","bu":"SAE","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"19/02/2026","conclusao":"23/02/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4524"},{"chave":"BDC-4530","bu":"SAS","produto":"Árvore de Coleções","acao":"Relatório","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"20/02/2026","conclusao":"20/02/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4530"},{"chave":"BDC-4534","bu":"COC","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gildo Cordeiro Duarte","criado":"20/02/2026","conclusao":"23/02/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4534"},{"chave":"BDC-4538","bu":"SAE","produto":"Árvore de Coleções","acao":"Excluir galhos","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"23/02/2026","conclusao":"26/02/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4538"},{"chave":"BDC-4546","bu":"SAS","produto":"Content Program","acao":"Melhoria visualização LD","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivan Lucas De Oliveira Ribeiro","criado":"24/02/2026","conclusao":"26/02/2026","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4546"},{"chave":"BDC-4555","bu":"SAS","produto":"Gestor - Conteúdos da Estante","acao":"Editar título Exercício","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"24/02/2026","conclusao":"05/03/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4555"},{"chave":"BDC-4564","bu":"IS","produto":"Gestor - Conteúdos da Estante","acao":"Novo Tipo/Subtipo","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"27/02/2026","conclusao":"05/03/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4564"},{"chave":"BDC-4580","bu":"IS","produto":"Gestor - Conteúdos da Estante","acao":"Novo Tipo/Subtipo","opex_resolvido":"Não","status":"Concluído","responsavel":"João Füzessy","criado":"27/02/2026","conclusao":"09/03/2026","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4580"},{"chave":"BDC-4581","bu":"SPE","produto":"Árvore de Coleções","acao":"Editar coleção","opex_resolvido":"Sim","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"27/02/2026","conclusao":"02/03/2026","dias_dev":1.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4581"},{"chave":"BDC-4621","bu":"SAS","produto":"Content Program","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"09/03/2026","conclusao":"11/03/2026","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4621"},{"chave":"BDC-4636","bu":"CQT","produto":"Gestor - Conteúdos Gerais","acao":"Liberar pasta","opex_resolvido":"Não","status":"Concluído","responsavel":"Ivonir Mathias Neto","criado":"12/03/2026","conclusao":"16/03/2026","dias_dev":3.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-4636"},{"chave":"BDC-3723","bu":"PES","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"31/10/2025","conclusao":"19/11/2025","dias_dev":7.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3723"},{"chave":"BDC-3752","bu":"SAE","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"05/11/2025","conclusao":"19/11/2025","dias_dev":6.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3752"},{"chave":"BDC-3753","bu":"PES","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"05/11/2025","conclusao":"19/11/2025","dias_dev":6.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3753"},{"chave":"BDC-3761","bu":"SAS","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"05/11/2025","conclusao":"19/11/2025","dias_dev":6.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3761"},{"chave":"BDC-3762","bu":"SPE","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"05/11/2025","conclusao":"19/11/2025","dias_dev":6.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3762"},{"chave":"BDC-3763","bu":"EI","produto":"Árvore de Coleções","acao":"Nova coleção","opex_resolvido":"Não","status":"Concluído","responsavel":"Gibran Cosmo Tavares","criado":"05/11/2025","conclusao":"19/11/2025","dias_dev":6.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3763"},{"chave":"BDC-3802","bu":"SAS","produto":"Gestor - Conteúdos da Estante","acao":"Reaproveitamento Conteúdo","opex_resolvido":"Não","status":"Concluído","responsavel":"Danilo Mendes Feitosa da Silva","criado":"12/11/2025","conclusao":"10/12/2025","dias_dev":17.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3802"},{"chave":"BDC-3810","bu":"COC","produto":"Gestor - Conteúdos da Estante","acao":"Reaproveitamento Conteúdo","opex_resolvido":"Não","status":"Concluído","responsavel":"Danilo Mendes Feitosa da Silva","criado":"12/11/2025","conclusao":"10/12/2025","dias_dev":15.0,"link":"https://arcotecnologia.atlassian.net/browse/BDC-3810"}];
+
+const MENSAL = [{"mes":"Jan/26","capex":79.0,"opex":21.0},{"mes":"Feb/26","capex":91.0,"opex":9.0},{"mes":"Mar/26","capex":46.0,"opex":54.0},{"mes":"Apr/26","capex":73.0,"opex":27.0},{"mes":"May/26","capex":39.0,"opex":61.0},{"mes":"Jun/26","capex":52.0,"opex":48.0},{"mes":"Jul/26","capex":62.0,"opex":38.0},{"mes":"Aug/26","capex":65.0,"opex":35.0},{"mes":"Sep/26","capex":29.0,"opex":71.0},{"mes":"Oct/26","capex":32.0,"opex":68.0},{"mes":"Nov/26","capex":31.0,"opex":69.0},{"mes":"Dec/26","capex":27.0,"opex":73.0}];
+
+const PAGE_SIZE = 12;
+let filtered = [...DATA];
+let page = 0;
+let chartInst = null;
+
+document.getElementById('today').textContent = new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+function populate(id, arr) {
+  const el = document.getElementById(id);
+  const cur = el.value;
+  while (el.options.length > 1) el.remove(1);
+  [...new Set(arr)].filter(Boolean).sort().forEach(v => el.add(new Option(v, v)));
+  if ([...el.options].some(o => o.value === cur)) el.value = cur;
+}
+
+function initFilters() {
+  populate('f-bu',   DATA.map(r => r.bu));
+  populate('f-prod', DATA.map(r => r.produto));
+  populate('f-resp', DATA.map(r => r.responsavel));
+}
+
+function applyFilters() {
+  const bu   = document.getElementById('f-bu').value;
+  const prod = document.getElementById('f-prod').value;
+  const resp = document.getElementById('f-resp').value;
+  filtered = DATA.filter(r =>
+    (!bu   || r.bu === bu) &&
+    (!prod || r.produto === prod) &&
+    (!resp || r.responsavel === resp)
+  );
+  page = 0;
+  render();
+}
+
+function resetFilters() {
+  ['f-bu','f-prod','f-resp'].forEach(id => document.getElementById(id).value = '');
+  filtered = [...DATA];
+  page = 0;
+  render();
+}
+
+function countMap(arr, key) {
+  const m = {};
+  arr.forEach(r => { if (r[key]) m[r[key]] = (m[r[key]] || 0) + 1; });
+  return m;
+}
+
+function renderCards() {
+  const n = filtered.length;
+  const sim = filtered.filter(r => r.opex_resolvido === 'Sim').length;
+  const nao = filtered.filter(r => r.opex_resolvido === 'Não').length;
+  const devs = filtered.filter(r => r.dias_dev > 0).map(r => r.dias_dev);
+  const avg = devs.length ? devs.reduce((a,b) => a+b, 0) / devs.length : 0;
+  document.getElementById('c-total').textContent = n;
+  document.getElementById('c-total-sub').textContent = filtered === DATA ? 'total de registros' : 'registros filtrados';
+  document.getElementById('c-sim').textContent = sim;
+  document.getElementById('c-sim-pct').textContent = n ? Math.round(sim/n*100) + '% do total' : '—';
+  document.getElementById('c-nao').textContent = nao;
+  document.getElementById('c-nao-pct').textContent = n ? Math.round(nao/n*100) + '% do total' : '—';
+  document.getElementById('c-dias').textContent = avg.toFixed(1);
+}
+
+function renderBar(containerId, data, color) {
+  const max = data[0]?.[1] || 1;
+  document.getElementById(containerId).innerHTML = data.map(([lbl, n]) =>
+    `<div class="bar-row">
+      <span class="bar-lbl" title="${lbl}">${lbl}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(n/max*100)}%;background:${color}"></div></div>
+      <span class="bar-n">${n}</span>
+    </div>`
+  ).join('');
+}
+
+function renderBars() {
+  const acoes = Object.entries(countMap(filtered,'acao')).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  renderBar('bars-acao', acoes, 'var(--accent-blue)');
+  const bus = Object.entries(countMap(filtered,'bu')).sort((a,b)=>b[1]-a[1]);
+  renderBar('bars-bu', bus, 'var(--accent-teal)');
+}
+
+function renderResp() {
+  const m = Object.entries(countMap(filtered,'responsavel')).sort((a,b)=>b[1]-a[1]);
+  const max = m[0]?.[1] || 1;
+  document.getElementById('resp-list').innerHTML = m.map(([r,n]) => {
+    const ini = r.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+    return `<div class="resp-row">
+      <div class="avatar">${ini}</div>
+      <div class="resp-info">
+        <div class="resp-name">${r}</div>
+        <div class="resp-bar"><div class="resp-bar-fill" style="width:${Math.round(n/max*100)}%"></div></div>
+      </div>
+      <span class="resp-n">${n}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderChart() {
+  const ctx = document.getElementById('chart-mensal').getContext('2d');
+  if (chartInst) chartInst.destroy();
+  chartInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: MENSAL.map(m=>m.mes),
+      datasets: [
+        { label:'Capex', data: MENSAL.map(m=>m.capex), backgroundColor:'#4f8ef7', borderRadius:3, barPercentage:.75 },
+        { label:'Opex',  data: MENSAL.map(m=>m.opex),  backgroundColor:'#2dd4a0', borderRadius:3, barPercentage:.75 }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ color:'#7a7f9a', font:{size:11,family:"'DM Sans'"}, boxWidth:12 } } },
+      scales:{
+        x:{ stacked:true, ticks:{color:'#7a7f9a',font:{size:10}}, grid:{color:'rgba(255,255,255,0.05)'} },
+        y:{ stacked:true, max:100, ticks:{color:'#7a7f9a',font:{size:10},callback:v=>v+'%'}, grid:{color:'rgba(255,255,255,0.05)'} }
+      }
+    }
+  });
+}
+
+function renderTable() {
+  const start = page * PAGE_SIZE;
+  const slice = filtered.slice(start, start + PAGE_SIZE);
+  document.getElementById('tbl-info').textContent = `${start+1}–${Math.min(start+PAGE_SIZE,filtered.length)} de ${filtered.length}`;
+  document.getElementById('tbody').innerHTML = slice.map(r =>
+    `<tr>
+      <td><a class="link-chave" href="${r.link}" target="_blank">${r.chave}</a></td>
+      <td>${r.bu}</td>
+      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.produto}">${r.produto}</td>
+      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.acao}">${r.acao}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.responsavel.split(' ').slice(0,2).join(' ')}</td>
+      <td style="color:var(--muted);font-family:var(--mono);font-size:11px">${r.criado}</td>
+      <td style="color:var(--muted);font-family:var(--mono);font-size:11px">${r.conclusao}</td>
+      <td class="num">${r.dias_dev}</td>
+      <td><span class="tag ${r.opex_resolvido==='Sim'?'tag-sim':'tag-nao'}">${r.opex_resolvido}</span></td>
+    </tr>`
+  ).join('');
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = Math.ceil(filtered.length / PAGE_SIZE);
+  let html = '';
+  for (let i = 0; i < total; i++) {
+    if (i === 0 || i === total-1 || Math.abs(i-page) <= 1) {
+      html += `<button class="${i===page?'active':''}" onclick="goPage(${i})">${i+1}</button>`;
+    } else if (Math.abs(i-page) === 2) {
+      html += `<span style="color:var(--muted);font-size:12px">…</span>`;
+    }
+  }
+  document.getElementById('pagination').innerHTML = html;
+}
+
+function goPage(n) { page = n; renderTable(); window.scrollTo({top: document.querySelector('.panel:last-child').offsetTop - 80, behavior:'smooth'}); }
+
+function render() {
+  renderCards();
+  renderBars();
+  renderResp();
+  renderTable();
+}
+
+initFilters();
+renderChart();
+render();
+</script>
+</body>
+</html>
