@@ -26,8 +26,8 @@
   .btn-refresh { display: flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--border2); color: var(--text); font-family: var(--font); font-size: 12px; padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: all .15s; }
   .btn-refresh:hover { background: var(--surface2); border-color: var(--blue); color: var(--blue); }
   .btn-refresh:disabled { opacity: .5; cursor: not-allowed; }
-  .btn-refresh .icon { width: 13px; height: 13px; transition: transform .6s; display: inline-block; }
-  .btn-refresh.loading .icon { animation: spin .7s linear infinite; }
+  .spin { display: inline-block; width: 13px; height: 13px; }
+  .btn-refresh.loading .spin { animation: spin .7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .status-bar { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); font-family: var(--mono); padding: 8px 32px; border-bottom: 1px solid var(--border); }
@@ -52,7 +52,7 @@
   .card-sub { font-size: 12px; color: var(--muted); }
   .c-blue{color:var(--blue)} .c-teal{color:var(--teal)} .c-amber{color:var(--amber)} .c-red{color:var(--red)}
 
-  .g2  { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; }
   .panel-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 16px; }
 
@@ -91,7 +91,7 @@
   @keyframes sh { 0%,100%{opacity:.4} 50%{opacity:.8} }
 
   ::-webkit-scrollbar{width:6px;height:6px} ::-webkit-scrollbar-track{background:var(--bg)} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
-  @media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}.wrap{padding:16px}.top-bar,.status-bar{padding-left:16px;padding-right:16px}}
+  @media(max-width:900px){ .cards{grid-template-columns:repeat(2,1fr)} .g2{grid-template-columns:1fr} .wrap{padding:16px} .top-bar,.status-bar{padding-left:16px;padding-right:16px} }
 </style>
 </head>
 <body>
@@ -101,7 +101,7 @@
   <div class="top-right">
     <span class="top-date" id="today"></span>
     <button class="btn-refresh" id="btn-refresh" onclick="loadData()">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
         <path d="M21 3v5h-5"/>
         <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
@@ -158,138 +158,193 @@
 </div>
 
 <script>
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS4szh0KgV8Jec6c2sV1oDmHxhvmKfKDVZDtTsEAfWa-6yv0T4yMInqkxPXTpsWEMdS_qvftKHBqRfe/pub?gid=1702950340&single=true&output=csv';
-const PROXY   = 'https://corsproxy.io/?';
-const PAGE_SIZE = 12;
+// ── CONFIGURAÇÃO ─────────────────────────────────────────────────────────────
+const SHEET_ID = '1EwAVZh2N0mT9aMPwsisMODJXnEetFezAmSw5egWbP30'; // ID normal da planilha
+const GID      = '1702950340'; // ID da aba Solicitações
+// ─────────────────────────────────────────────────────────────────────────────
 
+const PAGE_SIZE = 12;
 let ALL = [], filtered = [], page = 0;
 
 document.getElementById('today').textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
 function setStatus(type, msg) {
-  document.getElementById('sdot').className = 'dot' + (type==='ok'?'':' '+type);
+  document.getElementById('sdot').className = 'dot' + (type === 'ok' ? '' : ' ' + type);
   document.getElementById('smsg').textContent = msg;
 }
 
-function parseCSV(raw) {
-  const lines = raw.trim().split('\n');
-  const headers = lines[0].split(',').map(h=>h.replace(/^"|"$/g,'').trim());
-  return lines.slice(1).map(line => {
-    const cols=[]; let cur='', inQ=false;
-    for(const ch of line){
-      if(ch==='"'){inQ=!inQ;}
-      else if(ch===','&&!inQ){cols.push(cur.trim());cur='';}
-      else cur+=ch;
-    }
-    cols.push(cur.trim());
-    const o={};
-    headers.forEach((h,i)=>o[h]=(cols[i]||'').replace(/^"|"$/g,''));
-    return o;
-  }).filter(r=>r['Chave']&&r['Chave'].startsWith('BDC'));
-}
-
-function mapRow(r) {
-  return {
-    chave: r['Chave']||'',
-    bu: r['BU']||'',
-    produto: r['Produto']||'',
-    acao: r['Ação']||r['A\u00e7\u00e3o']||'',
-    opex_resolvido: r['Já resolvemos este Opex?']||r['J\u00e1 resolvemos este Opex?']||'',
-    responsavel: r['Responsável']||r['Respons\u00e1vel']||'',
-    criado: r['Criado em']||'',
-    conclusao: r['Conclusão']||r['Conclus\u00e3o']||'',
-    dias_dev: parseFloat(r['Dias Úteis (Dev→Conclusão)']||r['Dias \u00dateis (Dev\u2192Conclus\u00e3o)']||0)||0,
-    link: r['Link']||''
-  };
-}
-
-async function loadData() {
+function loadData() {
   const btn = document.getElementById('btn-refresh');
   btn.disabled = true;
   btn.classList.add('loading');
-  setStatus('loading','Buscando dados atualizados...');
-  try {
-    const res = await fetch(PROXY + encodeURIComponent(CSV_URL), {cache:'no-store'});
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const text = await res.text();
-    const rows = parseCSV(text);
-    if(!rows.length) throw new Error('Planilha vazia ou sem dados');
-    ALL = rows.map(mapRow);
-    filtered = [...ALL];
-    page = 0;
-    populateFilters();
-    render();
-    const t = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    setStatus('ok', `${ALL.length} registros carregados · atualizado às ${t}`);
-  } catch(e) {
-    setStatus('error','Erro ao carregar: '+e.message+' — verifique se a planilha está publicada e tente novamente');
-  } finally {
+  setStatus('loading', 'Buscando dados atualizados da planilha...');
+
+  const old = document.getElementById('gviz-script');
+  if (old) old.remove();
+
+  const cbName = 'gviz_' + Date.now();
+
+  const timeout = setTimeout(() => {
+    if (window[cbName]) {
+      delete window[cbName];
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      setStatus('error', 'Tempo esgotado — verifique se a planilha está publicada na web (Arquivo → Compartilhar → Publicar na web)');
+    }
+  }, 12000);
+
+  window[cbName] = function(resp) {
+    clearTimeout(timeout);
     btn.disabled = false;
     btn.classList.remove('loading');
-  }
+    delete window[cbName];
+
+    try {
+      if (!resp || !resp.table) throw new Error('Resposta inválida');
+
+      const cols = resp.table.cols.map(c => c.label);
+      const rows = (resp.table.rows || []).map(row => {
+        const obj = {};
+        cols.forEach((col, i) => {
+          const cell = row.c && row.c[i];
+          // Prefere o valor formatado (f) pois datas ficam legíveis
+          obj[col] = cell != null ? (cell.f != null ? String(cell.f) : cell.v != null ? String(cell.v) : '') : '';
+        });
+        return obj;
+      });
+
+      // Encontra as colunas independente de acentuação
+      function col(obj, ...keys) {
+        for (const k of keys) {
+          if (obj[k] != null && obj[k] !== '') return obj[k];
+        }
+        // Busca case-insensitive e sem acento como fallback
+        const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+        for (const k of keys) {
+          const nk = norm(k);
+          const found = Object.keys(obj).find(ok => norm(ok) === nk);
+          if (found) return obj[found];
+        }
+        return '';
+      }
+
+      ALL = rows
+        .filter(r => col(r,'Chave') && String(col(r,'Chave')).startsWith('BDC'))
+        .map(r => ({
+          chave:          col(r, 'Chave'),
+          bu:             col(r, 'BU'),
+          produto:        col(r, 'Produto'),
+          acao:           col(r, 'Ação', 'Acao'),
+          opex_resolvido: col(r, 'Já resolvemos este Opex?', 'Ja resolvemos este Opex?'),
+          responsavel:    col(r, 'Responsável', 'Responsavel'),
+          criado:         col(r, 'Criado em'),
+          conclusao:      col(r, 'Conclusão', 'Conclusao'),
+          dias_dev:       parseFloat(col(r, 'Dias Úteis (Dev→Conclusão)', 'Dias Uteis (Dev-Conclusao)')) || 0,
+          link:           col(r, 'Link')
+        }));
+
+      if (ALL.length === 0) throw new Error('Nenhum registro BDC encontrado — verifique se a aba correta está publicada');
+
+      filtered = [...ALL];
+      page = 0;
+      populateFilters();
+      render();
+
+      const t = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+      setStatus('ok', `${ALL.length} registros carregados · atualizado às ${t}`);
+
+    } catch(e) {
+      setStatus('error', 'Erro ao processar: ' + e.message);
+    }
+  };
+
+  // Usa o ID normal da planilha — funciona quando a planilha está compartilhada como "qualquer pessoa com o link"
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}&tq=select+*&cb=${cbName}`;
+  const script = document.createElement('script');
+  script.id = 'gviz-script';
+  script.src = url;
+  script.onerror = () => {
+    clearTimeout(timeout);
+    delete window[cbName];
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    setStatus('error', 'Não foi possível acessar a planilha — confirme que ela está compartilhada como "Qualquer pessoa com o link pode ver"');
+  };
+  document.head.appendChild(script);
 }
 
 function populateFilters() {
   function fill(id, arr) {
-    const el=document.getElementById(id), cur=el.value;
-    while(el.options.length>1) el.remove(1);
-    [...new Set(arr)].filter(Boolean).sort().forEach(v=>el.add(new Option(v,v)));
-    if([...el.options].some(o=>o.value===cur)) el.value=cur;
+    const el = document.getElementById(id), cur = el.value;
+    while (el.options.length > 1) el.remove(1);
+    [...new Set(arr)].filter(Boolean).sort().forEach(v => el.add(new Option(v, v)));
+    if ([...el.options].some(o => o.value === cur)) el.value = cur;
   }
-  fill('f-bu',   ALL.map(r=>r.bu));
-  fill('f-prod', ALL.map(r=>r.produto));
-  fill('f-resp', ALL.map(r=>r.responsavel));
+  fill('f-bu',   ALL.map(r => r.bu));
+  fill('f-prod', ALL.map(r => r.produto));
+  fill('f-resp', ALL.map(r => r.responsavel));
 }
 
 function applyFilters() {
-  const bu=document.getElementById('f-bu').value;
-  const prod=document.getElementById('f-prod').value;
-  const resp=document.getElementById('f-resp').value;
-  filtered=ALL.filter(r=>(!bu||r.bu===bu)&&(!prod||r.produto===prod)&&(!resp||r.responsavel===resp));
-  page=0; render();
+  const bu   = document.getElementById('f-bu').value;
+  const prod = document.getElementById('f-prod').value;
+  const resp = document.getElementById('f-resp').value;
+  filtered = ALL.filter(r =>
+    (!bu   || r.bu === bu) &&
+    (!prod || r.produto === prod) &&
+    (!resp || r.responsavel === resp)
+  );
+  page = 0; render();
 }
 
 function resetFilters() {
-  ['f-bu','f-prod','f-resp'].forEach(id=>document.getElementById(id).value='');
-  filtered=[...ALL]; page=0; render();
+  ['f-bu','f-prod','f-resp'].forEach(id => document.getElementById(id).value = '');
+  filtered = [...ALL]; page = 0; render();
 }
 
-function cmap(arr,key){const m={};arr.forEach(r=>{if(r[key])m[r[key]]=(m[r[key]]||0)+1;});return m;}
+function cmap(arr, key) {
+  const m = {};
+  arr.forEach(r => { if (r[key]) m[r[key]] = (m[r[key]] || 0) + 1; });
+  return m;
+}
 
 function renderCards() {
-  const n=filtered.length, sim=filtered.filter(r=>r.opex_resolvido==='Sim').length;
-  const nao=filtered.filter(r=>r.opex_resolvido==='Não').length;
-  const devs=filtered.filter(r=>r.dias_dev>0).map(r=>r.dias_dev);
-  const avg=devs.length?devs.reduce((a,b)=>a+b,0)/devs.length:0;
-  document.getElementById('c-total').textContent=n;
-  document.getElementById('c-total-sub').textContent=filtered.length===ALL.length?'total de registros':'registros filtrados';
-  document.getElementById('c-sim').textContent=sim;
-  document.getElementById('c-sim-pct').textContent=n?Math.round(sim/n*100)+'% do total':'—';
-  document.getElementById('c-nao').textContent=nao;
-  document.getElementById('c-nao-pct').textContent=n?Math.round(nao/n*100)+'% do total':'—';
-  document.getElementById('c-dias').textContent=avg.toFixed(1);
+  const n = filtered.length;
+  const sim = filtered.filter(r => r.opex_resolvido === 'Sim').length;
+  const nao = filtered.filter(r => r.opex_resolvido === 'Não').length;
+  const devs = filtered.filter(r => r.dias_dev > 0).map(r => r.dias_dev);
+  const avg = devs.length ? devs.reduce((a,b)=>a+b,0)/devs.length : 0;
+  document.getElementById('c-total').textContent = n;
+  document.getElementById('c-total-sub').textContent = filtered.length === ALL.length ? 'total de registros' : 'registros filtrados';
+  document.getElementById('c-sim').textContent = sim;
+  document.getElementById('c-sim-pct').textContent = n ? Math.round(sim/n*100)+'% do total' : '—';
+  document.getElementById('c-nao').textContent = nao;
+  document.getElementById('c-nao-pct').textContent = n ? Math.round(nao/n*100)+'% do total' : '—';
+  document.getElementById('c-dias').textContent = avg.toFixed(1);
 }
 
 function renderBars(id, data, color) {
-  const max=data[0]?.[1]||1;
-  document.getElementById(id).innerHTML=data.map(([l,n])=>
+  const max = data[0]?.[1] || 1;
+  document.getElementById(id).innerHTML = data.map(([l,n]) =>
     `<div class="bar-row"><span class="bar-lbl" title="${l}">${l}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(n/max*100)}%;background:${color}"></div></div><span class="bar-n">${n}</span></div>`
   ).join('');
 }
 
 function renderResp() {
-  const m=Object.entries(cmap(filtered,'responsavel')).sort((a,b)=>b[1]-a[1]);
-  const max=m[0]?.[1]||1;
-  document.getElementById('resp-list').innerHTML='<div class="resp-grid">'+m.map(([r,n])=>{
-    const ini=r.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
-    return `<div class="resp-row"><div class="avatar">${ini}</div><div class="resp-info"><div class="resp-name">${r}</div><div class="resp-bar"><div class="resp-bar-fill" style="width:${Math.round(n/max*100)}%"></div></div></div><span class="resp-n">${n}</span></div>`;
-  }).join('')+'</div>';
+  const m = Object.entries(cmap(filtered,'responsavel')).sort((a,b)=>b[1]-a[1]);
+  const max = m[0]?.[1] || 1;
+  document.getElementById('resp-list').innerHTML = '<div class="resp-grid">' +
+    m.map(([r,n]) => {
+      const ini = r.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+      return `<div class="resp-row"><div class="avatar">${ini}</div><div class="resp-info"><div class="resp-name">${r}</div><div class="resp-bar"><div class="resp-bar-fill" style="width:${Math.round(n/max*100)}%"></div></div></div><span class="resp-n">${n}</span></div>`;
+    }).join('') + '</div>';
 }
 
 function renderTable() {
-  const start=page*PAGE_SIZE, slice=filtered.slice(start,start+PAGE_SIZE);
-  document.getElementById('tbl-info').textContent=`${start+1}–${Math.min(start+PAGE_SIZE,filtered.length)} de ${filtered.length}`;
-  document.getElementById('tbody').innerHTML=slice.map(r=>
+  const start = page * PAGE_SIZE;
+  const slice = filtered.slice(start, start + PAGE_SIZE);
+  document.getElementById('tbl-info').textContent = `${start+1}–${Math.min(start+PAGE_SIZE,filtered.length)} de ${filtered.length}`;
+  document.getElementById('tbody').innerHTML = slice.map(r =>
     `<tr>
       <td><a class="link-chave" href="${r.link}" target="_blank">${r.chave}</a></td>
       <td>${r.bu}</td>
@@ -302,16 +357,17 @@ function renderTable() {
       <td><span class="tag ${r.opex_resolvido==='Sim'?'t-sim':'t-nao'}">${r.opex_resolvido}</span></td>
     </tr>`
   ).join('');
-  const total=Math.ceil(filtered.length/PAGE_SIZE);
-  let pg='';
-  for(let i=0;i<total;i++){
-    if(i===0||i===total-1||Math.abs(i-page)<=1) pg+=`<button class="${i===page?'active':''}" onclick="goPage(${i})">${i+1}</button>`;
-    else if(Math.abs(i-page)===2) pg+=`<span style="color:var(--muted);font-size:12px">…</span>`;
+
+  const total = Math.ceil(filtered.length / PAGE_SIZE);
+  let pg = '';
+  for (let i = 0; i < total; i++) {
+    if (i===0||i===total-1||Math.abs(i-page)<=1) pg += `<button class="${i===page?'active':''}" onclick="goPage(${i})">${i+1}</button>`;
+    else if (Math.abs(i-page)===2) pg += `<span style="color:var(--muted);font-size:12px">…</span>`;
   }
-  document.getElementById('pagination').innerHTML=pg;
+  document.getElementById('pagination').innerHTML = pg;
 }
 
-function goPage(n){page=n;renderTable();}
+function goPage(n) { page = n; renderTable(); }
 
 function render() {
   renderCards();
